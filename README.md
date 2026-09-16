@@ -12,12 +12,12 @@ High-performance, zero-dependency OS kernel I/O multiplexer and asynchronous eve
 ## 🌟 Features
 
 - ⚡ **Kernel-Level Demultiplexing**: Direct native integration with OS notification mechanisms:
-  - **Linux**: `epoll` (`epoll_create1`, `epoll_ctl`, `epoll_wait`)
-  - **Windows**: `WSAPoll` / Winsock2
-  - **macOS / BSD**: `kqueue` / POSIX fallback
+  - **Linux**: `epoll` (`epoll_create1`, `epoll_ctl`, `epoll_wait`) + `signalfd`
+  - **Windows**: `WSAPoll` / Winsock2 + native `IOCP` (I/O Completion Ports)
+  - **macOS / BSD**: Native `kqueue` (`kqueue`, `kevent`) with zero-polling
 - 🚀 **Extreme Concurrency (C100K Ready)**: Handles tens of thousands of active non-blocking socket connections with sub-microsecond event latency.
 - 📦 **Zero External Dependencies**: Bundled C driver compiled automatically by `alyac` via native C FFI engine.
-- 🎯 **Idiomatic Alya API**: First-class `UvEvent` enum, fluent `UvPoller` struct methods, and zero-allocation metadata passing (`udata`).
+- 🎯 **Idiomatic Alya API**: First-class `UvEvent` enum, fluent `UvPoller` struct methods, `UvIocp` completion queue, and zero-allocation metadata passing (`udata`).
 
 ---
 
@@ -27,14 +27,14 @@ High-performance, zero-dependency OS kernel I/O multiplexer and asynchronous eve
 uv/
 ├── alya.toml                  # Package manifest and C amalgamation configuration
 ├── c/
-│   ├── alya_uv.h              # C interface header for native poller
-│   └── alya_uv.c              # OS-specific kernel multiplexer implementation
+│   ├── alya_uv.h              # C interface header for native poller & IOCP
+│   └── alya_uv.c              # OS-specific kernel multiplexer (epoll, WSAPoll, kqueue, IOCP)
 ├── src/
-│   ├── lib.alya               # Public API facade
-│   ├── types.alya             # UvEvent enum, UvPoller and UvEventNotification structs
+│   ├── lib.alya               # Public API facade (poller, iocp, backend_name)
+│   ├── types.alya             # UvEvent enum, UvPoller, UvIocp, and UvEventNotification structs
 │   ├── ffi.alya               # extern "C" declarations
 │   └── core/
-│       └── poller.alya        # High-level UvPoller struct methods and lifecycle
+│       └── poller.alya        # High-level UvPoller & UvIocp struct methods and lifecycle
 ├── tests/
 │   └── test_basic.alya        # Comprehensive unit and integration test suite
 ├── examples/
@@ -103,6 +103,7 @@ main()
 |---|---|---|---|
 | `uv::poller(initial_capacity, max_events)` | `cap = 64, max = 64` | `UvPoller` | Creates a new kernel multiplexer poller instance. |
 | `uv::backend_name()` | None | `string` | Returns active backend name (`"WSAPoll"`, `"epoll"`, `"kqueue"`). |
+| `uv::iocp(max_threads)` | `max_threads = 0` | `UvIocp` | Creates an asynchronous I/O completion queue. |
 
 ### UvPoller Methods
 
@@ -112,8 +113,19 @@ main()
 | `p.modify(fd, events, udata)` | `fd: int, events: int, udata: int = 0` | `int` | Modifies monitored event mask or `udata` for socket `fd`. |
 | `p.remove(fd)` | `fd: int` | `int` | Deregisters socket `fd` from the poller. |
 | `p.wait(timeout_ms)` | `timeout_ms: int = 100` | `array` | Waits for kernel events up to `timeout_ms`. Returns `[UvEventNotification]`. |
+| `p.watch_signal(signum, udata)` | `signum: int, udata: int = 0` | `int` | Registers interest in process signal (e.g. `SIGINT` = 2). |
+| `p.unwatch_signal(signum)` | `signum: int` | `int` | Deregisters interest in process signal. |
 | `p.count()` | None | `int` | Returns number of active monitored sockets. |
 | `p.close()` | None | `int` | Closes the poller and frees native OS resources. |
+
+### UvIocp Methods (Completion Queue)
+
+| Method | Arguments | Returns | Description |
+|---|---|---|---|
+| `q.associate(handle, key)` | `handle: int, key: int = 0` | `int` | Associates socket/file handle with completion port. |
+| `q.post(bytes, key, udata)` | `bytes: int, key: int = 0, udata: int = 0` | `int` | Posts a manual completion packet to the queue. |
+| `q.wait(timeout_ms)` | `timeout_ms: int = 100` | `array` | Dequeues completed packet within `timeout_ms`. |
+| `q.close()` | None | `int` | Closes completion port and frees resources. |
 
 ### Event Bitmasks (`UvEvent` Enum)
 
@@ -123,6 +135,8 @@ main()
 | `UvEvent.Writable` | `2` | Socket is ready to write data without blocking. |
 | `UvEvent.Error` | `4` | Socket error condition detected by the kernel. |
 | `UvEvent.Hangup` | `8` | Remote peer closed connection / EOF. |
+| `UvEvent.Signal` | `16` | OS process signal was delivered to the poller. |
+| `UvEvent.Completed` | `32` | Asynchronous completion packet dequeued from IOCP. |
 
 ---
 

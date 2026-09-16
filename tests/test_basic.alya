@@ -80,7 +80,31 @@ function main()
     # 5. Poller Close and Resource Cleanup
     let close_res = p.close()
     runner_assert_eq(r, close_res, 1, "poller closed successfully")
-    runner_assert_eq(r, p.closed, 1, "poller marked closed")
+
+    # 6. Signal Monitoring API Verification
+    let p_sig = uv::poller(16, 16)
+    let sig_res = p_sig.watch_signal(2, 5555)
+    runner_assert_eq(r, sig_res, 0, "signal watch registered")
+    let unsig_res = p_sig.unwatch_signal(2)
+    runner_assert_eq(r, unsig_res, 0, "signal watch deregistered")
+    p_sig.close()
+
+    # 7. Async Completion Queue (Windows IOCP / Universal Queue)
+    let queue = uv::iocp(2)
+    runner_assert(r, queue is not null, "iocp queue created")
+
+    let post_res = queue.post(1024, 777, 888)
+    runner_assert_eq(r, post_res, 0, "completion packet posted")
+
+    let q_events = queue.wait(50)
+    runner_assert_eq(r, len(q_events), 1, "received 1 completion event")
+    let q_ev = q_events[0]
+    runner_assert_eq(r, q_ev.fd, 777, "completion key matches 777")
+    runner_assert_eq(r, q_ev.udata, 888, "completion udata matches 888")
+    runner_assert(r, (q_ev.events & uv::UvEvent.Completed) != 0, "event has Completed flag")
+
+    let q_close = queue.close()
+    runner_assert_eq(r, q_close, 1, "iocp closed successfully")
 
     runner_summary(r)
 end

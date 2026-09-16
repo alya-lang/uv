@@ -14,3 +14,8 @@ end
 pub function backend_name()
     return alya_uv_backend_name()
 end
+
+# Convenience factory for UvIocp (Windows IOCP / Async Completion Queue)
+pub function iocp(max_threads = 0)
+    return iocp_new(max_threads)
+end

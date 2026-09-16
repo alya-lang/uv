@@ -16,5 +16,14 @@ extern "C"
     function alya_uv_event_udata(events: ptr, index: i32) -> i64
     function alya_uv_events_free(events: ptr) -> void
 
+    function alya_uv_poller_watch_signal(p: ptr, signum: i32, udata: i64) -> i32
+    function alya_uv_poller_unwatch_signal(p: ptr, signum: i32) -> i32
+
+    function alya_uv_iocp_create(max_threads: i32) -> ptr
+    function alya_uv_iocp_associate(iocp: ptr, socket_handle: i64, completion_key: i64) -> i32
+    function alya_uv_iocp_post(iocp: ptr, bytes_transferred: i64, completion_key: i64, udata: i64) -> i32
+    function alya_uv_iocp_wait(iocp: ptr, out_events: ptr, max_events: i32, timeout_ms: i32) -> i32
+    function alya_uv_iocp_close(iocp: ptr) -> void
+
     function alya_uv_backend_name() -> str
 end

@@ -19,10 +19,12 @@
 #endif
 
 /* Event bitmasks */
-#define ALYA_UV_READABLE  (1 << 0)  /* 1 */
-#define ALYA_UV_WRITABLE  (1 << 1)  /* 2 */
-#define ALYA_UV_ERROR     (1 << 2)  /* 4 */
-#define ALYA_UV_HANGUP    (1 << 3)  /* 8 */
+#define ALYA_UV_READABLE   (1 << 0)  /* 1 */
+#define ALYA_UV_WRITABLE   (1 << 1)  /* 2 */
+#define ALYA_UV_ERROR      (1 << 2)  /* 4 */
+#define ALYA_UV_HANGUP     (1 << 3)  /* 8 */
+#define ALYA_UV_SIGNAL     (1 << 4)  /* 16 */
+#define ALYA_UV_COMPLETED  (1 << 5)  /* 32 */
 
 typedef struct alya_uv_event {
     int64_t fd;
@@ -41,6 +43,18 @@ int32_t alya_uv_poller_remove(alya_uv_poller_t* p, int64_t fd);
 int32_t alya_uv_poller_wait(alya_uv_poller_t* p, alya_uv_event_t* out_events, int32_t max_events, int32_t timeout_ms);
 int32_t alya_uv_poller_count(alya_uv_poller_t* p);
 void alya_uv_poller_close(alya_uv_poller_t* p);
+
+/* Signal Monitoring API */
+int32_t alya_uv_poller_watch_signal(alya_uv_poller_t* p, int32_t signum, int64_t udata);
+int32_t alya_uv_poller_unwatch_signal(alya_uv_poller_t* p, int32_t signum);
+
+/* Windows IOCP / Async Completion Queue API */
+typedef struct alya_uv_iocp alya_uv_iocp_t;
+alya_uv_iocp_t* alya_uv_iocp_create(int32_t max_threads);
+int32_t alya_uv_iocp_associate(alya_uv_iocp_t* iocp, int64_t socket_handle, int64_t completion_key);
+int32_t alya_uv_iocp_post(alya_uv_iocp_t* iocp, int64_t bytes_transferred, int64_t completion_key, int64_t udata);
+int32_t alya_uv_iocp_wait(alya_uv_iocp_t* iocp, alya_uv_event_t* out_events, int32_t max_events, int32_t timeout_ms);
+void alya_uv_iocp_close(alya_uv_iocp_t* iocp);
 
 /* Event buffer allocation & accessors for safe Alya FFI */
 alya_uv_event_t* alya_uv_events_create(int32_t max_events);

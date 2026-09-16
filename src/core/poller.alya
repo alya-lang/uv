@@ -109,6 +109,25 @@ pub function poller_close(p)
     return 1
 end
 
+# Watches an OS process signal (SIGINT=2, SIGTERM=15, etc.) via the poller
+pub function poller_watch_signal(p, signum, udata = 0)
+    if p is null or p.closed == 1 or signum is null or signum <= 0
+        return -1
+    end
+    if udata is null
+        udata = 0
+    end
+    return alya_uv_poller_watch_signal(p.handle, signum, udata)
+end
+
+# Deregisters a signal watcher from the poller
+pub function poller_unwatch_signal(p, signum)
+    if p is null or p.closed == 1 or signum is null or signum <= 0
+        return -1
+    end
+    return alya_uv_poller_unwatch_signal(p.handle, signum)
+end
+
 # --- Struct Methods on UvPoller ---
 
 pub function UvPoller.add(self, fd, events = 1, udata = 0)
@@ -127,10 +146,120 @@ pub function UvPoller.wait(self, timeout_ms = 100)
     return poller_wait(self, timeout_ms)
 end
 
+pub function UvPoller.watch_signal(self, signum, udata = 0)
+    return poller_watch_signal(self, signum, udata)
+end
+
+pub function UvPoller.unwatch_signal(self, signum)
+    return poller_unwatch_signal(self, signum)
+end
+
 pub function UvPoller.count(self)
     return poller_count(self)
 end
 
 pub function UvPoller.close(self)
     return poller_close(self)
+end
+
+# ═══════════════════════════════════════════════════════════════
+# Windows IOCP / Universal Async Completion Queue
+# ═══════════════════════════════════════════════════════════════
+
+# Creates a new async I/O completion queue
+pub function iocp_new(max_threads = 0)
+    if max_threads is null or max_threads < 0
+        max_threads = 0
+    end
+    let handle = alya_uv_iocp_create(max_threads)
+    if handle is null
+        return null
+    end
+    let ev_buf = alya_uv_events_create(16)
+    return UvIocp {
+        handle: handle,
+        events_buffer: ev_buf,
+        closed: 0
+    }
+end
+
+# Associates a socket or file handle with the completion queue
+pub function iocp_associate(iocp, socket_handle, completion_key = 0)
+    if iocp is null or iocp.closed == 1 or socket_handle is null or socket_handle <= 0
+        return -1
+    end
+    if completion_key is null
+        completion_key = 0
+    end
+    return alya_uv_iocp_associate(iocp.handle, socket_handle, completion_key)
+end
+
+# Posts an asynchronous completion packet directly into the queue
+pub function iocp_post(iocp, bytes_transferred, completion_key = 0, udata = 0)
+    if iocp is null or iocp.closed == 1
+        return -1
+    end
+    if bytes_transferred is null
+        bytes_transferred = 0
+    end
+    if completion_key is null
+        completion_key = 0
+    end
+    if udata is null
+        udata = 0
+    end
+    return alya_uv_iocp_post(iocp.handle, bytes_transferred, completion_key, udata)
+end
+
+# Waits for a queued completion event up to timeout_ms
+pub function iocp_wait(iocp, timeout_ms = 100)
+    if iocp is null or iocp.closed == 1
+        return []
+    end
+    if timeout_ms is null or timeout_ms < 0
+        timeout_ms = 0
+    end
+    let res = alya_uv_iocp_wait(iocp.handle, iocp.events_buffer, 1, timeout_ms)
+    if res <= 0
+        return []
+    end
+    let key = alya_uv_event_fd(iocp.events_buffer, 0)
+    let flags = alya_uv_event_flags(iocp.events_buffer, 0)
+    let udata = alya_uv_event_udata(iocp.events_buffer, 0)
+    return [UvEventNotification(key, flags, udata)]
+end
+
+# Closes the completion queue and frees resources
+pub function iocp_close(iocp)
+    if iocp is null or iocp.closed == 1
+        return 0
+    end
+    iocp.closed = 1
+    if iocp.events_buffer is not null
+        alya_uv_events_free(iocp.events_buffer)
+        iocp.events_buffer = null
+    end
+    if iocp.handle is not null
+        alya_uv_iocp_close(iocp.handle)
+        iocp.handle = null
+    end
+    return 1
+end
+
+# --- Struct Methods on UvIocp ---
+
+pub function UvIocp.associate(self, socket_handle, completion_key = 0)
+    return iocp_associate(self, socket_handle, completion_key)
+end
+
+pub function UvIocp.post(self, bytes_transferred, completion_key = 0, udata = 0)
+    return iocp_post(self, bytes_transferred, completion_key, udata)
+end
+
+pub function UvIocp.wait(self, timeout_ms = 100)
+    return iocp_wait(self, timeout_ms)
+end
+
+pub function UvIocp.close(self)
+    return iocp_close(self)
 end

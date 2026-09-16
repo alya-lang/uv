@@ -6,7 +6,9 @@ pub enum UvEvent
     Readable = 1,
     Writable = 2,
     Error = 4,
-    Hangup = 8
+    Hangup = 8,
+    Signal = 16,
+    Completed = 32
 end
 
 # Event record triggered by the kernel poller
@@ -24,6 +26,13 @@ pub struct UvPoller
     closed
 end
 
+# Completion queue struct wrapping native Windows IOCP or async completion queue
+pub struct UvIocp
+    handle,
+    events_buffer,
+    closed
+end
+
 # Human-readable event description formatter
 pub function uv_event_name(events)
     let parts = []
@@ -38,6 +47,12 @@ pub function uv_event_name(events)
     end
     if (events & UvEvent.Hangup) != 0
         push(parts, "HANGUP")
+    end
+    if (events & UvEvent.Signal) != 0
+        push(parts, "SIGNAL")
+    end
+    if (events & UvEvent.Completed) != 0
+        push(parts, "COMPLETED")
     end
     if len(parts) == 0
         return "NONE"
