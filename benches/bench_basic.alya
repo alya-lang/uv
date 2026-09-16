@@ -38,6 +38,8 @@ function main()
     end
     bench_stop(runner, "poller wait(0) probe 20k ops")
     p3.close()
+
+    bench_summary(runner)
 end
 
 main()

@@ -3,49 +3,88 @@ import "std/net"
 import "../src/lib.alya" as uv
 
 function main()
-    say "=== Alya uv Kernel Multiplexer Showcase ==="
-    say "OS Backend: " + uv::backend_name()
+    say "=================================================="
+    say "   Alya uv Kernel I/O Multiplexer Showcase"
+    say "=================================================="
+    say "Detected OS Kernel Backend: " + uv::backend_name()
     say ""
 
-    let p = uv::poller()
-    say "1. Initialized UvPoller handle"
+    # 1. Poller Initialization
+    say "--- 1. Initializing UvPoller Handle ---"
+    let p = uv::poller(32, 32)
+    say "✓ Poller created with capacity 32"
+    say "• Initial monitored sockets: " + str(p.count())
+    say ""
 
+    # 2. Server Setup & Poller Registration
+    say "--- 2. Registering Non-Blocking TCP Server ---"
     let port = 19890
     let srv = tcp_listen(port, 5)
     tcp_set_nonblocking(srv, 1)
-    p.add(srv, uv::UvEvent.Readable, 42)
-    say "2. Listening on port " + str(port) + " and registered with poller"
+    p.add(srv, uv::UvEvent.Readable, 1001)
+    say "✓ Server listening on 127.0.0.1:" + str(port) + " (fd=" + str(srv) + ")"
+    say "✓ Registered listener with poller (udata=1001, events=READABLE)"
+    say "• Monitored sockets count: " + str(p.count())
+    say ""
 
-    # Connect client
+    # 3. Client Connection & Event Detection
+    say "--- 3. Client Connection & Readiness Demultiplexing ---"
     let client = tcp_connect("127.0.0.1", port)
-    say "3. Client connected from 127.0.0.1"
+    say "✓ Client connected from 127.0.0.1 (fd=" + str(client) + ")"
 
-    # Wait for listener notification
     let evs = p.wait(50)
-    say "4. Poller detected " + str(len(evs)) + " ready event(s)"
+    say "✓ Poller wait detected " + str(len(evs)) + " ready event(s):"
+    for ev in evs
+        let ev_str = uv::uv_event_name(ev.events)
+        say "  • Event on fd=" + str(ev.fd) + " | Type: " + ev_str + " | udata=" + str(ev.udata)
+    end
+    say ""
 
-    if len(evs) > 0
-        let accepted = tcp_accept(srv)
-        tcp_set_nonblocking(accepted, 1)
-        p.add(accepted, uv::UvEvent.Readable, 100)
+    # 4. Accept & Data Exchange
+    say "--- 4. Socket Accept & Non-Blocking Data Transmission ---"
+    let accepted = tcp_accept(srv)
+    tcp_set_nonblocking(accepted, 1)
+    p.add(accepted, uv::UvEvent.Readable, 2002)
+    say "✓ Accepted client connection (fd=" + str(accepted) + ", udata=2002)"
 
-        tcp_send(client, "HELLO_FROM_UV_CLIENT\n")
-        let data_evs = p.wait(50)
-        say "5. Poller detected incoming data on socket: " + str(len(data_evs)) + " event(s)"
+    tcp_send(client, "HELLO_KERNEL_MULTIPLEXER\n")
+    say "✓ Sent 25-byte payload from client"
 
-        let msg = tcp_recv(accepted, 1024)
-        say "   Server received: " + msg
-
-        p.remove(accepted)
-        p.remove(srv)
-        tcp_close(client)
-        tcp_close(accepted)
-        tcp_close(srv)
+    let data_evs = p.wait(50)
+    say "✓ Poller detected incoming data:"
+    for ev in data_evs
+        let ev_str = uv::uv_event_name(ev.events)
+        say "  • Event on fd=" + str(ev.fd) + " | Type: " + ev_str + " | udata=" + str(ev.udata)
     end
 
+    let msg = tcp_recv(accepted, 1024)
+    say "✓ Server received payload: " + msg
+
+    # 5. Modifying and Removing Sockets
+    say "--- 5. Dynamic Event Modification & Deregistration ---"
+    p.modify(accepted, uv::UvEvent.Writable, 3003)
+    say "✓ Modified accepted socket event mask to WRITABLE (udata=3003)"
+
+    p.remove(accepted)
+    say "✓ Removed accepted socket from poller"
+    say "• Monitored sockets count: " + str(p.count())
+
+    p.remove(srv)
+    say "✓ Removed server listener from poller"
+    say "• Monitored sockets count: " + str(p.count())
+    say ""
+
+    # 6. Cleanup
+    say "--- 6. Resource Cleanup ---"
+    tcp_close(client)
+    tcp_close(accepted)
+    tcp_close(srv)
     p.close()
-    say "6. Poller closed and native memory freed"
-    say "\n🎉 uv demonstration completed successfully!"
+    say "✓ All sockets closed and native poller memory released."
+    say ""
+    say "=================================================="
+    say "🎉 uv demonstration completed successfully!"
+    say "=================================================="
 end
 
 main()
