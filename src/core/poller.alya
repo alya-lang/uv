@@ -78,7 +78,7 @@ pub function poller_wait(p, timeout_ms = 100)
         let fd = alya_uv_event_fd(p.events_buffer, i)
         let ev_flags = alya_uv_event_flags(p.events_buffer, i)
         let udata = alya_uv_event_udata(p.events_buffer, i)
-        push(results, UvEventNotification(fd, ev_flags, udata))
+        push(results, UvEventNotification(0, fd, ev_flags, udata))
         i += 1
     end
     return results
@@ -226,7 +226,7 @@ pub function iocp_wait(iocp, timeout_ms = 100)
     let key = alya_uv_event_fd(iocp.events_buffer, 0)
     let flags = alya_uv_event_flags(iocp.events_buffer, 0)
     let udata = alya_uv_event_udata(iocp.events_buffer, 0)
-    return [UvEventNotification(key, flags, udata)]
+    return [UvEventNotification(0, key, flags, udata)]
 end
 
 # Closes the completion queue and frees resources

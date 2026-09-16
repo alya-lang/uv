@@ -13,6 +13,7 @@ end
 
 # Event record triggered by the kernel poller
 pub struct UvEventNotification
+    kind,
     fd,
     events,
     udata
