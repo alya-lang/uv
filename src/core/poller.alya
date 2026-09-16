@@ -134,29 +134,3 @@ end
 pub function UvPoller.close(self)
     return poller_close(self)
 end
-
-# --- UFCS Global Function Fallbacks ---
-
-pub function add(p, fd, events = 1, udata = 0)
-    return poller_add(p, fd, events, udata)
-end
-
-pub function modify(p, fd, events, udata = 0)
-    return poller_modify(p, fd, events, udata)
-end
-
-pub function remove(p, fd)
-    return poller_remove(p, fd)
-end
-
-pub function wait(p, timeout_ms = 100)
-    return poller_wait(p, timeout_ms)
-end
-
-pub function count(p)
-    return poller_count(p)
-end
-
-pub function close(p)
-    return poller_close(p)
-end
