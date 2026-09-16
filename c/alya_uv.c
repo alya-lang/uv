@@ -180,6 +180,7 @@ int32_t alya_uv_poller_wait(alya_uv_poller_t* p, alya_uv_event_t* out_events, in
         return out_count;
     }
 
+    for (int32_t z = 0; z < p->count; z++) { p->fds[z].revents = 0; }
     int res = WSAPoll(p->fds, (ULONG)p->count, timeout_ms);
     if (res <= 0) {
         return out_count > 0 ? out_count : res;
