@@ -1,0 +1,18 @@
+[package]
+name = "uv"
+version = "0.1.0"
+alya-version = "0.0.18"
+entry = "src/lib.alya"
+description = "High-performance OS kernel I/O multiplexing (epoll, WSAPoll, kqueue) and asynchronous event engine for Alya"
+authors = ["Alya Language Contributors <https://github.com/alya-lang>"]
+license = "MIT"
+homepage = "https://github.com/alya-lang/alya"
+repository = "https://github.com/alya-lang/uv"
+keywords = ["alya", "alya-lang", "package", "uv", "epoll", "iocp", "wsapoll", "kqueue", "multiplexer", "reactor", "concurrency", "networking"]
+
+[dependencies]
+
+[build]
+c-sources = ["c/alya_uv.c"]
+c-flags = ["-O2"]
+c-include-dirs = ["c"]

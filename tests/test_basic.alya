@@ -1,0 +1,91 @@
+# Comprehensive unit and integration test suite for uv package
+import "std/test"
+import "std/net"
+import "../src/lib.alya" as uv
+
+function main()
+    test_suite("uv Package Kernel Multiplexer Test Suite")
+    let r = runner_new()
+
+    # 1. Native Backend Info
+    let backend = uv::backend_name()
+    runner_assert(r, len(backend) > 0, "backend name should not be empty")
+    say "Detected OS Kernel Multiplexer Backend: " + backend
+
+    let ver = uv::version()
+    runner_assert_str_eq(r, ver, "0.1.0", "uv version matches 0.1.0")
+
+    # 2. Poller Initialization and Empty Wait
+    let p = uv::poller(32, 32)
+    runner_assert(r, p is not null, "poller created successfully")
+    runner_assert_eq(r, p.count(), 0, "initial poller count is 0")
+
+    let empty_events = p.wait(10)
+    runner_assert_eq(r, len(empty_events), 0, "empty poller returns 0 events")
+
+    # 3. Real Non-Blocking Socket I/O Multiplexing
+    let test_port = 19875
+    let srv = tcp_listen(test_port, 5)
+    runner_assert(r, srv >= 0, "server socket listening")
+    tcp_set_nonblocking(srv, 1)
+
+    let add_res = p.add(srv, uv::UvEvent.Readable, 1001)
+    runner_assert_eq(r, add_res, 0, "srv added to poller")
+    runner_assert_eq(r, p.count(), 1, "poller count is 1")
+
+    # Client connects to trigger readable event on server listener
+    let client = tcp_connect("127.0.0.1", test_port)
+    runner_assert(r, client >= 0, "client connected")
+
+    let conn_events = p.wait(50)
+    runner_assert(r, len(conn_events) >= 1, "listener event triggered")
+    let first_ev = conn_events[0]
+    runner_assert_eq(r, first_ev.fd, srv, "event fd matches srv")
+    runner_assert(r, (first_ev.events & uv::UvEvent.Readable) != 0, "event is readable")
+    runner_assert_eq(r, first_ev.udata, 1001, "event udata matches 1001")
+
+    # Accept client and watch data
+    let accepted = tcp_accept(srv)
+    runner_assert(r, accepted >= 0, "client connection accepted")
+    tcp_set_nonblocking(accepted, 1)
+
+    p.add(accepted, uv::UvEvent.Readable, 2002)
+    runner_assert_eq(r, p.count(), 2, "poller count is 2 (srv + accepted)")
+
+    # Send payload from client to accepted socket
+    tcp_send(client, "ALYA_UV_KERNEL_PING")
+
+    let data_events = p.wait(50)
+    runner_assert(r, len(data_events) >= 1, "data event detected")
+    let data_ev = data_events[0]
+    runner_assert_eq(r, data_ev.fd, accepted, "event fd matches accepted socket")
+    runner_assert_eq(r, data_ev.udata, 2002, "event udata matches 2002")
+
+    let payload = tcp_recv(accepted, 1024)
+    runner_assert_str_eq(r, payload, "ALYA_UV_KERNEL_PING", "payload matches client send")
+
+    # 4. Modify & Remove Socket Descriptors
+    let mod_res = p.modify(accepted, uv::UvEvent.Writable, 3003)
+    runner_assert_eq(r, mod_res, 0, "modified socket events to writable")
+
+    let rem_res = p.remove(accepted)
+    runner_assert_eq(r, rem_res, 0, "accepted socket removed")
+    runner_assert_eq(r, p.count(), 1, "poller count dropped to 1")
+
+    p.remove(srv)
+    runner_assert_eq(r, p.count(), 0, "all sockets removed")
+
+    # Sockets cleanup
+    tcp_close(client)
+    tcp_close(accepted)
+    tcp_close(srv)
+
+    # 5. Poller Close and Resource Cleanup
+    let close_res = p.close()
+    runner_assert_eq(r, close_res, 1, "poller closed successfully")
+    runner_assert_eq(r, p.closed, 1, "poller marked closed")
+
+    runner_summary(r)
+end
+
+main()

@@ -1,0 +1,43 @@
+# Benchmark suite for uv kernel multiplexer
+import "std/bench"
+import "std/net"
+import "../src/lib.alya" as uv
+
+function main()
+    let runner = bench_runner("uv Micro-Benchmarks")
+
+    # 1. Poller Create and Destroy Throughput
+    bench_start(runner, 10000)
+    let i = 0
+    while i < 10000
+        let p = uv::poller(16, 16)
+        p.close()
+        i += 1
+    end
+    bench_stop(runner, "uv::poller create & close 10k ops")
+
+    # 2. Add and Remove Sockets Throughput
+    let p2 = uv::poller(128, 128)
+    bench_start(runner, 50000)
+    let j = 0
+    while j < 50000
+        p2.add(j % 1000, uv::UvEvent.Readable, j)
+        p2.remove(j % 1000)
+        j += 1
+    end
+    bench_stop(runner, "poller add & remove 50k ops")
+    p2.close()
+
+    # 3. Non-Blocking Poll with Zero Timeout (Instant Probe)
+    let p3 = uv::poller(16, 16)
+    bench_start(runner, 20000)
+    let k = 0
+    while k < 20000
+        p3.wait(0)
+        k += 1
+    end
+    bench_stop(runner, "poller wait(0) probe 20k ops")
+    p3.close()
+end
+
+main()

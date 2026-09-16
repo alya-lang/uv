@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Alya Compiler
+        uses: alya-lang/setup-alya@v1
+        with:
+          version: 'latest'
+
+      - name: Run test suite
+        run: alyac test .
+
+      - name: Run feature demonstration
+        run: alyac run examples/demo.alya

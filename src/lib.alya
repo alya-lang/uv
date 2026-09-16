@@ -1,0 +1,21 @@
+# uv - High-Performance OS Kernel I/O Multiplexing Engine
+# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+
+import "./types.alya"
+import "./ffi.alya"
+import "./core/poller.alya"
+
+# Convenience factory for UvPoller
+pub function poller(initial_capacity = 64, max_events_batch = 64)
+    return poller_new(initial_capacity, max_events_batch)
+end
+
+# Returns the active OS kernel multiplexer name ("WSAPoll", "epoll", "kqueue", "poll")
+pub function backend_name()
+    return alya_uv_backend_name()
+end
+
+# Returns the native uv engine version
+pub function version()
+    return alya_uv_version()
+end

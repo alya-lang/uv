@@ -1,0 +1,162 @@
+# High-Level UvPoller Engine
+# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+
+import "../types.alya"
+import "../ffi.alya"
+
+# Creates a new initialized UvPoller instance backed by kernel multiplexer
+pub function poller_new(initial_capacity = 64, max_events_batch = 64)
+    if initial_capacity is null or initial_capacity < 8
+        initial_capacity = 8
+    end
+    if max_events_batch is null or max_events_batch < 8
+        max_events_batch = 8
+    end
+    let handle = alya_uv_poller_create(initial_capacity)
+    if handle is null
+        return null
+    end
+    let ev_buf = alya_uv_events_create(max_events_batch)
+    return UvPoller {
+        handle: handle,
+        events_buffer: ev_buf,
+        buffer_capacity: max_events_batch,
+        closed: 0
+    }
+end
+
+# Registers a socket descriptor with the kernel poller
+pub function poller_add(p, fd, events = 1, udata = 0)
+    if p is null or p.closed == 1 or fd is null or fd < 0
+        return -1
+    end
+    if events is null
+        events = UvEvent.Readable
+    end
+    if udata is null
+        udata = 0
+    end
+    return alya_uv_poller_add(p.handle, fd, events, udata)
+end
+
+# Modifies watched events for a registered socket
+pub function poller_modify(p, fd, events, udata = 0)
+    if p is null or p.closed == 1 or fd is null or fd < 0
+        return -1
+    end
+    if udata is null
+        udata = 0
+    end
+    return alya_uv_poller_modify(p.handle, fd, events, udata)
+end
+
+# Deregisters a socket descriptor from the kernel poller
+pub function poller_remove(p, fd)
+    if p is null or p.closed == 1 or fd is null or fd < 0
+        return -1
+    end
+    return alya_uv_poller_remove(p.handle, fd)
+end
+
+# Polls the kernel multiplexer for ready I/O events up to timeout_ms
+# Returns an array of UvEventNotification records
+pub function poller_wait(p, timeout_ms = 100)
+    if p is null or p.closed == 1
+        return []
+    end
+    if timeout_ms is null or timeout_ms < 0
+        timeout_ms = 0
+    end
+    let triggered_count = alya_uv_poller_wait(p.handle, p.events_buffer, p.buffer_capacity, timeout_ms)
+    if triggered_count <= 0
+        return []
+    end
+
+    let results = []
+    let i = 0
+    while i < triggered_count
+        let fd = alya_uv_event_fd(p.events_buffer, i)
+        let ev_flags = alya_uv_event_flags(p.events_buffer, i)
+        let udata = alya_uv_event_udata(p.events_buffer, i)
+        push(results, UvEventNotification(fd, ev_flags, udata))
+        i += 1
+    end
+    return results
+end
+
+# Returns total active sockets monitored by this poller
+pub function poller_count(p)
+    if p is null or p.closed == 1
+        return 0
+    end
+    return alya_uv_poller_count(p.handle)
+end
+
+# Closes the poller and frees native OS resources
+pub function poller_close(p)
+    if p is null or p.closed == 1
+        return 0
+    end
+    p.closed = 1
+    if p.events_buffer is not null
+        alya_uv_events_free(p.events_buffer)
+        p.events_buffer = null
+    end
+    if p.handle is not null
+        alya_uv_poller_close(p.handle)
+        p.handle = null
+    end
+    return 1
+end
+
+# --- Struct Methods on UvPoller ---
+
+pub function UvPoller.add(self, fd, events = 1, udata = 0)
+    return poller_add(self, fd, events, udata)
+end
+
+pub function UvPoller.modify(self, fd, events, udata = 0)
+    return poller_modify(self, fd, events, udata)
+end
+
+pub function UvPoller.remove(self, fd)
+    return poller_remove(self, fd)
+end
+
+pub function UvPoller.wait(self, timeout_ms = 100)
+    return poller_wait(self, timeout_ms)
+end
+
+pub function UvPoller.count(self)
+    return poller_count(self)
+end
+
+pub function UvPoller.close(self)
+    return poller_close(self)
+end
+
+# --- UFCS Global Function Fallbacks ---
+
+pub function add(p, fd, events = 1, udata = 0)
+    return poller_add(p, fd, events, udata)
+end
+
+pub function modify(p, fd, events, udata = 0)
+    return poller_modify(p, fd, events, udata)
+end
+
+pub function remove(p, fd)
+    return poller_remove(p, fd)
+end
+
+pub function wait(p, timeout_ms = 100)
+    return poller_wait(p, timeout_ms)
+end
+
+pub function count(p)
+    return poller_count(p)
+end
+
+pub function close(p)
+    return poller_close(p)
+end

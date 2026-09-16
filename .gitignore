@@ -1,0 +1,15 @@
+# Alya compiler build artifacts
+/target/
+.alya/
+alya.lock
+*.exe
+*.o
+*.s
+*.a
+*.so
+*.dylib
+*.dll
+
+# Release and environment
+.env
+RELEASE_NOTES.md
