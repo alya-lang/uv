@@ -165,10 +165,18 @@ void alya_uv_poller_close(alya_uv_poller_t* p) {
 /* --- Linux epoll Backend --- */
 
 #include <sys/epoll.h>
+#include <unistd.h>
+
+typedef struct alya_uv_epoll_slot {
+    int64_t fd;
+    int64_t udata;
+} alya_uv_epoll_slot_t;
 
 struct alya_uv_poller {
     int epfd;
     int32_t count;
+    int32_t capacity;
+    alya_uv_epoll_slot_t** slots;
 };
 
 const char* alya_uv_backend_name(void) {
@@ -176,7 +184,7 @@ const char* alya_uv_backend_name(void) {
 }
 
 alya_uv_poller_t* alya_uv_poller_create(int32_t initial_capacity) {
-    (void)initial_capacity;
+    if (initial_capacity < 8) initial_capacity = 8;
     int epfd = epoll_create1(EPOLL_CLOEXEC);
     if (epfd < 0) return NULL;
     alya_uv_poller_t* p = (alya_uv_poller_t*)malloc(sizeof(alya_uv_poller_t));
@@ -186,6 +194,13 @@ alya_uv_poller_t* alya_uv_poller_create(int32_t initial_capacity) {
     }
     p->epfd = epfd;
     p->count = 0;
+    p->capacity = initial_capacity;
+    p->slots = (alya_uv_epoll_slot_t**)malloc(sizeof(alya_uv_epoll_slot_t*) * (size_t)initial_capacity);
+    if (!p->slots) {
+        close(epfd);
+        free(p);
+        return NULL;
+    }
     return p;
 }
 
@@ -207,39 +222,98 @@ static int32_t alya_epoll_to_events(uint32_t ep_events) {
 
 int32_t alya_uv_poller_add(alya_uv_poller_t* p, int64_t fd, int32_t events, int64_t udata) {
     if (!p || fd < 0) return -1;
+    /* Check if socket is already present */
+    for (int32_t i = 0; i < p->count; i++) {
+        if (p->slots[i]->fd == fd) {
+            p->slots[i]->udata = udata;
+            struct epoll_event ev;
+            memset(&ev, 0, sizeof(ev));
+            ev.events = alya_events_to_epoll(events);
+            ev.data.ptr = p->slots[i];
+            return epoll_ctl(p->epfd, EPOLL_CTL_MOD, (int)fd, &ev);
+        }
+    }
+    /* Grow capacity if required */
+    if (p->count >= p->capacity) {
+        int32_t new_cap = p->capacity * 2;
+        alya_uv_epoll_slot_t** new_slots = (alya_uv_epoll_slot_t**)realloc(p->slots, sizeof(alya_uv_epoll_slot_t*) * (size_t)new_cap);
+        if (!new_slots) return -1;
+        p->slots = new_slots;
+        p->capacity = new_cap;
+    }
+    alya_uv_epoll_slot_t* slot = (alya_uv_epoll_slot_t*)malloc(sizeof(alya_uv_epoll_slot_t));
+    if (!slot) return -1;
+    slot->fd = fd;
+    slot->udata = udata;
+
     struct epoll_event ev;
+    memset(&ev, 0, sizeof(ev));
     ev.events = alya_events_to_epoll(events);
-    ev.data.u64 = (uint64_t)udata;
+    ev.data.ptr = slot;
+
     int res = epoll_ctl(p->epfd, EPOLL_CTL_ADD, (int)fd, &ev);
-    if (res == 0) p->count++;
-    return res;
+    if (res != 0) {
+        free(slot);
+        return res;
+    }
+    p->slots[p->count++] = slot;
+    return 0;
 }
 
 int32_t alya_uv_poller_modify(alya_uv_poller_t* p, int64_t fd, int32_t events, int64_t udata) {
     if (!p || fd < 0) return -1;
-    struct epoll_event ev;
-    ev.events = alya_events_to_epoll(events);
-    ev.data.u64 = (uint64_t)udata;
-    return epoll_ctl(p->epfd, EPOLL_CTL_MOD, (int)fd, &ev);
+    for (int32_t i = 0; i < p->count; i++) {
+        if (p->slots[i]->fd == fd) {
+            p->slots[i]->udata = udata;
+            struct epoll_event ev;
+            memset(&ev, 0, sizeof(ev));
+            ev.events = alya_events_to_epoll(events);
+            ev.data.ptr = p->slots[i];
+            return epoll_ctl(p->epfd, EPOLL_CTL_MOD, (int)fd, &ev);
+        }
+    }
+    return -1;
 }
 
 int32_t alya_uv_poller_remove(alya_uv_poller_t* p, int64_t fd) {
     if (!p || fd < 0) return -1;
-    int res = epoll_ctl(p->epfd, EPOLL_CTL_DEL, (int)fd, NULL);
-    if (res == 0 && p->count > 0) p->count--;
-    return res;
+    for (int32_t i = 0; i < p->count; i++) {
+        if (p->slots[i]->fd == fd) {
+            epoll_ctl(p->epfd, EPOLL_CTL_DEL, (int)fd, NULL);
+            free(p->slots[i]);
+            int32_t last = p->count - 1;
+            if (i != last) {
+                p->slots[i] = p->slots[last];
+            }
+            p->count--;
+            return 0;
+        }
+    }
+    return -1;
 }
 
 int32_t alya_uv_poller_wait(alya_uv_poller_t* p, alya_uv_event_t* out_events, int32_t max_events, int32_t timeout_ms) {
     if (!p || !out_events || max_events <= 0) return -1;
+    if (p->count == 0) {
+        if (timeout_ms > 0) {
+            usleep((useconds_t)timeout_ms * 1000);
+        }
+        return 0;
+    }
     struct epoll_event ep_events[64];
     int batch = max_events < 64 ? max_events : 64;
     int nfds = epoll_wait(p->epfd, ep_events, batch, timeout_ms);
     if (nfds <= 0) return nfds;
     for (int i = 0; i < nfds; i++) {
-        out_events[i].fd = -1; /* Socket fd stored in udata or mapped */
+        alya_uv_epoll_slot_t* slot = (alya_uv_epoll_slot_t*)ep_events[i].data.ptr;
+        if (slot) {
+            out_events[i].fd = slot->fd;
+            out_events[i].udata = slot->udata;
+        } else {
+            out_events[i].fd = -1;
+            out_events[i].udata = 0;
+        }
         out_events[i].events = alya_epoll_to_events(ep_events[i].events);
-        out_events[i].udata = (int64_t)ep_events[i].data.u64;
     }
     return nfds;
 }
@@ -250,6 +324,12 @@ int32_t alya_uv_poller_count(alya_uv_poller_t* p) {
 
 void alya_uv_poller_close(alya_uv_poller_t* p) {
     if (!p) return;
+    if (p->slots) {
+        for (int32_t i = 0; i < p->count; i++) {
+            if (p->slots[i]) free(p->slots[i]);
+        }
+        free(p->slots);
+    }
     if (p->epfd >= 0) close(p->epfd);
     free(p);
 }
