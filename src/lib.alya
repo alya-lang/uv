@@ -14,8 +14,3 @@ end
 pub function backend_name()
     return alya_uv_backend_name()
 end
-
-# Returns the native uv engine version
-pub function version()
-    return alya_uv_version()
-end

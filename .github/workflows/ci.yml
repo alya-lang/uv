@@ -5,25 +5,47 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     name: Test on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Alya Compiler
+      - name: Set up Alya Compiler
         uses: alya-lang/setup-alya@v1
         with:
           version: 'latest'
 
-      - name: Run test suite
-        run: alyac test .
+      - name: Verify alyac installation
+        run: |
+          alyac --version
 
-      - name: Run feature demonstration
-        run: alyac run examples/demo.alya
+      - name: Check code formatting
+        run: |
+          alyac fmt . --check
+
+      - name: Check package manifest
+        run: |
+          alyac pkg list
+
+      - name: Install dependencies
+        run: |
+          alyac install
+
+      - name: Run package test suite
+        run: |
+          alyac test

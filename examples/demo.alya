@@ -5,7 +5,6 @@ import "../src/lib.alya" as uv
 function main()
     say "=== Alya uv Kernel Multiplexer Showcase ==="
     say "OS Backend: " + uv::backend_name()
-    say "Version:    " + uv::version()
     say ""
 
     let p = uv::poller()

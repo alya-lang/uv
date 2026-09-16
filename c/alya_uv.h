@@ -51,6 +51,5 @@ void alya_uv_events_free(alya_uv_event_t* events);
 
 /* Backend metadata */
 const char* alya_uv_backend_name(void);
-const char* alya_uv_version(void);
 
 #endif /* ALYA_UV_H */

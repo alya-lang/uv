@@ -1,15 +1,34 @@
-# Alya compiler build artifacts
+# Build and compilation outputs
 /target/
-.alya/
-alya.lock
 *.exe
 *.o
 *.s
-*.a
+*.app
+*.dll
 *.so
 *.dylib
-*.dll
 
-# Release and environment
-.env
+# Alya runtime, packages, and caches
+.alya/
+alya.lock
+alya.lock.bak
+*.db
+*.log
 RELEASE_NOTES.md
+
+# Environment configuration files
+.env
+.env.local
+.env.*.local
+
+# Operating System artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Text Editor configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

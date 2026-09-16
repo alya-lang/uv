@@ -21,7 +21,7 @@ High-performance, zero-dependency OS kernel I/O multiplexer and asynchronous eve
 
 ---
 
-## 📁 Architecture
+## 📁 Project Architecture
 
 ```text
 uv/
@@ -103,7 +103,6 @@ main()
 |---|---|---|---|
 | `uv::poller(initial_capacity, max_events)` | `cap = 64, max = 64` | `UvPoller` | Creates a new kernel multiplexer poller instance. |
 | `uv::backend_name()` | None | `string` | Returns active backend name (`"WSAPoll"`, `"epoll"`, `"kqueue"`). |
-| `uv::version()` | None | `string` | Returns native uv engine version. |
 
 ### UvPoller Methods
 
@@ -146,6 +145,25 @@ Run micro-benchmarks:
 ```bash
 alyac run benches/bench_basic.alya
 ```
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository and clone it locally
+2. Install dependencies:
+   ```bash
+   alyac install
+   ```
+3. Create your feature branch (`git checkout -b feature/my-feature`)
+4. Verify tests and formatting before opening a PR:
+   ```bash
+   alyac test
+   alyac fmt . --check
+   ```
+5. Commit your changes (`git commit -m "feat: add feature"`) and open a Pull Request
 
 ---
 

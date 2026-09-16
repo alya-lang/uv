@@ -17,5 +17,4 @@ extern "C"
     function alya_uv_events_free(events: ptr) -> void
 
     function alya_uv_backend_name() -> str
-    function alya_uv_version() -> str
 end

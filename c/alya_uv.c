@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ALYA_UV_VERSION "0.1.0"
-
 #if defined(_WIN32)
 
 /* --- Windows WSAPoll Backend --- */
@@ -424,8 +422,4 @@ int64_t alya_uv_event_udata(const alya_uv_event_t* events, int32_t index) {
 
 void alya_uv_events_free(alya_uv_event_t* events) {
     if (events) free(events);
-}
-
-const char* alya_uv_version(void) {
-    return ALYA_UV_VERSION;
 }

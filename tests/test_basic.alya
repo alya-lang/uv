@@ -12,9 +12,6 @@ function main()
     runner_assert(r, len(backend) > 0, "backend name should not be empty")
     say "Detected OS Kernel Multiplexer Backend: " + backend
 
-    let ver = uv::version()
-    runner_assert_str_eq(r, ver, "0.1.0", "uv version matches 0.1.0")
-
     # 2. Poller Initialization and Empty Wait
     let p = uv::poller(32, 32)
     runner_assert(r, p is not null, "poller created successfully")
