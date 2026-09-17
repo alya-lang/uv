@@ -26,7 +26,7 @@ pub function poller_new(initial_capacity = 64, max_events_batch = 64)
 end
 
 # Registers a socket descriptor with the kernel poller
-pub function poller_add(p, fd, events = 1, udata = 0)
+pub function poller_add(p: UvPoller, fd, events = 1, udata = 0)
     if p is null or p.closed == 1 or fd is null or fd < 0
         return -1
     end
@@ -40,7 +40,7 @@ pub function poller_add(p, fd, events = 1, udata = 0)
 end
 
 # Modifies watched events for a registered socket
-pub function poller_modify(p, fd, events, udata = 0)
+pub function poller_modify(p: UvPoller, fd, events, udata = 0)
     if p is null or p.closed == 1 or fd is null or fd < 0
         return -1
     end
@@ -51,7 +51,7 @@ pub function poller_modify(p, fd, events, udata = 0)
 end
 
 # Deregisters a socket descriptor from the kernel poller
-pub function poller_remove(p, fd)
+pub function poller_remove(p: UvPoller, fd)
     if p is null or p.closed == 1 or fd is null or fd < 0
         return -1
     end
@@ -60,7 +60,7 @@ end
 
 # Polls the kernel multiplexer for ready I/O events up to timeout_ms
 # Returns an array of UvEventNotification records
-pub function poller_wait(p, timeout_ms = 100)
+pub function poller_wait(p: UvPoller, timeout_ms = 100)
     if p is null or p.closed == 1
         return []
     end
@@ -85,7 +85,7 @@ pub function poller_wait(p, timeout_ms = 100)
 end
 
 # Returns total active sockets monitored by this poller
-pub function poller_count(p)
+pub function poller_count(p: UvPoller)
     if p is null or p.closed == 1
         return 0
     end
@@ -93,7 +93,7 @@ pub function poller_count(p)
 end
 
 # Closes the poller and frees native OS resources
-pub function poller_close(p)
+pub function poller_close(p: UvPoller)
     if p is null or p.closed == 1
         return 0
     end
@@ -110,7 +110,7 @@ pub function poller_close(p)
 end
 
 # Watches an OS process signal (SIGINT=2, SIGTERM=15, etc.) via the poller
-pub function poller_watch_signal(p, signum, udata = 0)
+pub function poller_watch_signal(p: UvPoller, signum, udata = 0)
     if p is null or p.closed == 1 or signum is null or signum <= 0
         return -1
     end
@@ -121,7 +121,7 @@ pub function poller_watch_signal(p, signum, udata = 0)
 end
 
 # Deregisters a signal watcher from the poller
-pub function poller_unwatch_signal(p, signum)
+pub function poller_unwatch_signal(p: UvPoller, signum)
     if p is null or p.closed == 1 or signum is null or signum <= 0
         return -1
     end
@@ -130,35 +130,35 @@ end
 
 # --- Struct Methods on UvPoller ---
 
-pub function UvPoller.add(self, fd, events = 1, udata = 0)
+pub function UvPoller.add(self: UvPoller, fd, events = 1, udata = 0)
     return poller_add(self, fd, events, udata)
 end
 
-pub function UvPoller.modify(self, fd, events, udata = 0)
+pub function UvPoller.modify(self: UvPoller, fd, events, udata = 0)
     return poller_modify(self, fd, events, udata)
 end
 
-pub function UvPoller.remove(self, fd)
+pub function UvPoller.remove(self: UvPoller, fd)
     return poller_remove(self, fd)
 end
 
-pub function UvPoller.wait(self, timeout_ms = 100)
+pub function UvPoller.wait(self: UvPoller, timeout_ms = 100)
     return poller_wait(self, timeout_ms)
 end
 
-pub function UvPoller.watch_signal(self, signum, udata = 0)
+pub function UvPoller.watch_signal(self: UvPoller, signum, udata = 0)
     return poller_watch_signal(self, signum, udata)
 end
 
-pub function UvPoller.unwatch_signal(self, signum)
+pub function UvPoller.unwatch_signal(self: UvPoller, signum)
     return poller_unwatch_signal(self, signum)
 end
 
-pub function UvPoller.count(self)
+pub function UvPoller.count(self: UvPoller)
     return poller_count(self)
 end
 
-pub function UvPoller.close(self)
+pub function UvPoller.close(self: UvPoller)
     return poller_close(self)
 end
 
