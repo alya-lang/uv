@@ -5,8 +5,8 @@
 Using the Alya CLI:
 
 ```bash
-alyac add {{PACKAGE_NAME}} --git https://github.com/{{REPOSITORY}} --tag {{TAG}}
-alyac install
+alya add {{PACKAGE_NAME}} --git https://github.com/{{REPOSITORY}} --tag {{TAG}}
+alya install
 ```
 
 Or add it directly to your project's `alya.toml`:

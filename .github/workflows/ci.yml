@@ -30,22 +30,22 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Verify alyac installation
+      - name: Verify alya installation
         run: |
-          alyac --version
+          alya --version
 
       - name: Check code formatting
         run: |
-          alyac fmt . --check
+          alya fmt . --check
 
       - name: Check package manifest
         run: |
-          alyac pkg list
+          alya pkg list
 
       - name: Install dependencies
         run: |
-          alyac install
+          alya install
 
       - name: Run package test suite
         run: |
-          alyac test
+          alya test

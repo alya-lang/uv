@@ -16,7 +16,7 @@ High-performance, zero-dependency OS kernel I/O multiplexer and asynchronous eve
   - **Windows**: `WSAPoll` / Winsock2 + native `IOCP` (I/O Completion Ports)
   - **macOS / BSD**: Native `kqueue` (`kqueue`, `kevent`) with zero-polling
 - 🚀 **Extreme Concurrency (C100K Ready)**: Handles tens of thousands of active non-blocking socket connections with sub-microsecond event latency.
-- 📦 **Zero External Dependencies**: Bundled C driver compiled automatically by `alyac` via native C FFI engine.
+- 📦 **Zero External Dependencies**: Bundled C driver compiled automatically by `alya` via native C FFI engine.
 - 🎯 **Idiomatic Alya API**: First-class `UvEvent` enum, fluent `UvPoller` struct methods, `UvIocp` completion queue, and zero-allocation metadata passing (`udata`).
 
 ---
@@ -57,8 +57,8 @@ uv = { git = "https://github.com/alya-lang/uv", branch = "main" }
 Or install it directly via the Alya package CLI:
 
 ```bash
-alyac add uv --git https://github.com/alya-lang/uv --branch main
-alyac install
+alya add uv --git https://github.com/alya-lang/uv --branch main
+alya install
 ```
 
 ---
@@ -145,19 +145,19 @@ main()
 Run the test suite:
 
 ```bash
-alyac test .
+alya test .
 ```
 
 Run feature demonstration:
 
 ```bash
-alyac run examples/demo.alya
+alya run examples/demo.alya
 ```
 
 Run micro-benchmarks:
 
 ```bash
-alyac run benches/bench_basic.alya
+alya run benches/bench_basic.alya
 ```
 
 ---
@@ -169,13 +169,13 @@ Contributions are welcome! Please follow these steps:
 1. Fork the repository and clone it locally
 2. Install dependencies:
    ```bash
-   alyac install
+   alya install
    ```
 3. Create your feature branch (`git checkout -b feature/my-feature`)
 4. Verify tests and formatting before opening a PR:
    ```bash
-   alyac test
-   alyac fmt . --check
+   alya test
+   alya fmt . --check
    ```
 5. Commit your changes (`git commit -m "feat: add feature"`) and open a Pull Request
 
