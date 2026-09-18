@@ -13,6 +13,7 @@ keywords = ["alya", "alya-lang", "package", "uv", "epoll", "iocp", "wsapoll", "k
 [dependencies]
 
 [build]
+links = "uv"
 c-sources = ["c/alya_uv.c"]
 c-flags = ["-O2"]
 c-include-dirs = ["c"]
