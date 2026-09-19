@@ -49,3 +49,20 @@ jobs:
       - name: Run package test suite
         run: |
           alya test
+
+      - name: Build documentation
+        shell: bash
+        run: |
+          alya doc . -o docs --markdown
+          if [ -f docs/index.md ]; then
+            echo "### 📖 API Documentation Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat docs/index.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: api-docs
+          path: docs/
