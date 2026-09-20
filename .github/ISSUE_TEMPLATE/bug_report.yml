@@ -37,7 +37,7 @@ body:
     attributes:
       label: Alya Version
       description: Run `alya --version` and paste the output here.
-      placeholder: "alya 0.0.18"
+      placeholder: "alya 0.0.19"
     validations:
       required: true
   - type: dropdown
