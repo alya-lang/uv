@@ -160,6 +160,18 @@ Run micro-benchmarks:
 alya run benches/bench_basic.alya
 ```
 
+Check code formatting:
+
+```bash
+alya fmt . --check
+```
+
+Run static code linter:
+
+```bash
+alya lint . --check
+```
+
 ---
 
 ## 🤝 Contributing
