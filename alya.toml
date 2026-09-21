@@ -17,3 +17,7 @@ links = "uv"
 c-sources = ["c/alya_uv.c"]
 c-flags = ["-O2"]
 c-include-dirs = ["c"]
+
+# [lint]
+# disabled_rules = []
+# exclude = []
