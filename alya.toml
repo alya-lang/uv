@@ -21,3 +21,12 @@ c-include-dirs = ["c"]
 # [lint]
 # disabled_rules = []
 # exclude = []
+
+# [fmt]
+# exclude = []
+
+# [test]
+# exclude = []
+
+# [bench]
+# exclude = []
