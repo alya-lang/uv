@@ -1,4 +1,9 @@
-# Comprehensive unit and integration test suite for uv package
+## Test suite for the uv package
+##
+## Exercises backend detection, poller lifecycle, real socket multiplexing,
+## signal watchers, and the async completion queue.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+
 import "std/test"
 import "std/net"
 import "../src/lib.alya" as uv
@@ -10,7 +15,7 @@ function main()
     # 1. Native Backend Info
     let backend = uv::backend_name()
     runner_assert(r, len(backend) > 0, "backend name should not be empty")
-    say "Detected OS Kernel Multiplexer Backend: " + backend
+    say "Detected OS Kernel Multiplexer Backend: {backend}"
 
     # 2. Poller Initialization and Empty Wait
     let p = uv::poller(32, 32)

@@ -1,5 +1,7 @@
-# C FFI declarations for uv kernel multiplexer engine
-# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+## # uv/ffi
+##
+## C FFI declarations for the uv kernel multiplexer engine.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
 
 extern "C"
     function alya_uv_poller_create(initial_capacity: i32) -> ptr

@@ -1,10 +1,30 @@
-# High-Level UvPoller Engine
-# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+## # uv/core/poller
+##
+## High-level UvPoller engine.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Manages descriptor registration, readiness waits, signal watchers, and
+## async completion queues over the native FFI layer.
 
 import "../types.alya"
 import "../ffi.alya"
 
-# Creates a new initialized UvPoller instance backed by kernel multiplexer
+## Creates an initialized `UvPoller` backed by the kernel multiplexer.
+##
+## Capacities below `8` are raised to the `8` minimum; null inputs fall
+## back to the same floor.
+##
+## ### Parameters
+## - `initial_capacity`: Pre-sized descriptor slots. Defaults to `64`.
+## - `max_events_batch`: Maximum events per wait batch. Defaults to `64`.
+##
+## ### Returns
+## The new `UvPoller` instance (null when native creation fails).
+##
+## ### Examples
+## ```alya
+## let p = poller_new(32, 32)
+## ```
 pub function poller_new(initial_capacity = 64, max_events_batch = 64)
     if initial_capacity is null or initial_capacity < 8
         initial_capacity = 8
@@ -25,8 +45,17 @@ pub function poller_new(initial_capacity = 64, max_events_batch = 64)
     }
 end
 
-# Registers a socket descriptor with the kernel poller
-pub function poller_add(p: UvPoller, fd, events = 1, udata = 0)
+## Registers a socket descriptor with the kernel poller.
+##
+## ### Parameters
+## - `p`: Target `UvPoller` instance.
+## - `fd`: Socket descriptor integer.
+## - `events`: `UvEvent` bitmask. Defaults to `1` (`Readable`).
+## - `udata`: Caller tag echoed back on events. Defaults to `0`.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function poller_add(p: UvPoller, fd, events = 1, udata = 0) -> int
     if p is null or p.closed == 1 or fd is null or fd < 0
         return -1
     end
@@ -39,8 +68,17 @@ pub function poller_add(p: UvPoller, fd, events = 1, udata = 0)
     return alya_uv_poller_add(p.handle, fd, events, udata)
 end
 
-# Modifies watched events for a registered socket
-pub function poller_modify(p: UvPoller, fd, events, udata = 0)
+## Modifies watched events for a registered socket.
+##
+## ### Parameters
+## - `p`: Target `UvPoller` instance.
+## - `fd`: Socket descriptor integer.
+## - `events`: Replacement `UvEvent` bitmask.
+## - `udata`: Caller tag echoed back on events. Defaults to `0`.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function poller_modify(p: UvPoller, fd, events: int, udata = 0) -> int
     if p is null or p.closed == 1 or fd is null or fd < 0
         return -1
     end
@@ -50,17 +88,30 @@ pub function poller_modify(p: UvPoller, fd, events, udata = 0)
     return alya_uv_poller_modify(p.handle, fd, events, udata)
 end
 
-# Deregisters a socket descriptor from the kernel poller
-pub function poller_remove(p: UvPoller, fd)
+## Deregisters a socket descriptor from the kernel poller.
+##
+## ### Parameters
+## - `p`: Target `UvPoller` instance.
+## - `fd`: Socket descriptor integer.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function poller_remove(p: UvPoller, fd) -> int
     if p is null or p.closed == 1 or fd is null or fd < 0
         return -1
     end
     return alya_uv_poller_remove(p.handle, fd)
 end
 
-# Polls the kernel multiplexer for ready I/O events up to timeout_ms
-# Returns an array of UvEventNotification records
-pub function poller_wait(p: UvPoller, timeout_ms = 100)
+## Polls the kernel multiplexer for ready I/O events up to a timeout.
+##
+## ### Parameters
+## - `p`: Target `UvPoller` instance.
+## - `timeout_ms`: Wait ceiling in milliseconds. Defaults to `100`.
+##
+## ### Returns
+## Array of `UvEventNotification` records (possibly empty).
+pub function poller_wait(p: UvPoller, timeout_ms = 100) -> array
     if p is null or p.closed == 1
         return []
     end
@@ -78,22 +129,34 @@ pub function poller_wait(p: UvPoller, timeout_ms = 100)
         let fd = alya_uv_event_fd(p.events_buffer, i)
         let ev_flags = alya_uv_event_flags(p.events_buffer, i)
         let udata = alya_uv_event_udata(p.events_buffer, i)
-        push(results, UvEventNotification(0, fd, ev_flags, udata))
+        push(results, UvEventNotification { kind: 0, fd: fd, events: ev_flags, udata: udata })
         i += 1
     end
     return results
 end
 
-# Returns total active sockets monitored by this poller
-pub function poller_count(p: UvPoller)
+## Returns the total active sockets monitored by this poller.
+##
+## ### Parameters
+## - `p`: Target `UvPoller` instance.
+##
+## ### Returns
+## Monitored descriptor count (`0` when closed).
+pub function poller_count(p: UvPoller) -> int
     if p is null or p.closed == 1
         return 0
     end
     return alya_uv_poller_count(p.handle)
 end
 
-# Closes the poller and frees native OS resources
-pub function poller_close(p: UvPoller)
+## Closes the poller and frees native OS resources (idempotent).
+##
+## ### Parameters
+## - `p`: Target `UvPoller` instance.
+##
+## ### Returns
+## `1` on close, `0` when already closed.
+pub function poller_close(p: UvPoller) -> int
     if p is null or p.closed == 1
         return 0
     end
@@ -109,8 +172,16 @@ pub function poller_close(p: UvPoller)
     return 1
 end
 
-# Watches an OS process signal (SIGINT=2, SIGTERM=15, etc.) via the poller
-pub function poller_watch_signal(p: UvPoller, signum, udata = 0)
+## Watches an OS process signal (`SIGINT=2`, `SIGTERM=15`) via the poller.
+##
+## ### Parameters
+## - `p`: Target `UvPoller` instance.
+## - `signum`: Signal number integer.
+## - `udata`: Caller tag echoed back on events. Defaults to `0`.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function poller_watch_signal(p: UvPoller, signum, udata = 0) -> int
     if p is null or p.closed == 1 or signum is null or signum <= 0
         return -1
     end
@@ -120,45 +191,121 @@ pub function poller_watch_signal(p: UvPoller, signum, udata = 0)
     return alya_uv_poller_watch_signal(p.handle, signum, udata)
 end
 
-# Deregisters a signal watcher from the poller
-pub function poller_unwatch_signal(p: UvPoller, signum)
+## Deregisters a signal watcher from the poller.
+##
+## ### Parameters
+## - `p`: Target `UvPoller` instance.
+## - `signum`: Signal number integer.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function poller_unwatch_signal(p: UvPoller, signum) -> int
     if p is null or p.closed == 1 or signum is null or signum <= 0
         return -1
     end
     return alya_uv_poller_unwatch_signal(p.handle, signum)
 end
 
-# --- Struct Methods on UvPoller ---
+# ───────────────────────────────────────────────────────────────
+# Struct Methods on UvPoller
+# ───────────────────────────────────────────────────────────────
 
-pub function UvPoller.add(self: UvPoller, fd, events = 1, udata = 0)
+## Registers a socket descriptor with this poller.
+##
+## ### Parameters
+## - `self`: The target `UvPoller` instance.
+## - `fd`: Socket descriptor integer.
+## - `events`: `UvEvent` bitmask. Defaults to `1` (`Readable`).
+## - `udata`: Caller tag echoed back on events. Defaults to `0`.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function UvPoller.add(self: UvPoller, fd, events = 1, udata = 0) -> int
     return poller_add(self, fd, events, udata)
 end
 
-pub function UvPoller.modify(self: UvPoller, fd, events, udata = 0)
+## Modifies watched events for a registered socket.
+##
+## ### Parameters
+## - `self`: The target `UvPoller` instance.
+## - `fd`: Socket descriptor integer.
+## - `events`: Replacement `UvEvent` bitmask.
+## - `udata`: Caller tag echoed back on events. Defaults to `0`.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function UvPoller.modify(self: UvPoller, fd, events: int, udata = 0) -> int
     return poller_modify(self, fd, events, udata)
 end
 
-pub function UvPoller.remove(self: UvPoller, fd)
+## Deregisters a socket descriptor from this poller.
+##
+## ### Parameters
+## - `self`: The target `UvPoller` instance.
+## - `fd`: Socket descriptor integer.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function UvPoller.remove(self: UvPoller, fd) -> int
     return poller_remove(self, fd)
 end
 
-pub function UvPoller.wait(self: UvPoller, timeout_ms = 100)
+## Polls this poller for ready I/O events up to a timeout.
+##
+## ### Parameters
+## - `self`: The target `UvPoller` instance.
+## - `timeout_ms`: Wait ceiling in milliseconds. Defaults to `100`.
+##
+## ### Returns
+## Array of `UvEventNotification` records (possibly empty).
+pub function UvPoller.wait(self: UvPoller, timeout_ms = 100) -> array
     return poller_wait(self, timeout_ms)
 end
 
-pub function UvPoller.watch_signal(self: UvPoller, signum, udata = 0)
+## Watches an OS process signal via this poller.
+##
+## ### Parameters
+## - `self`: The target `UvPoller` instance.
+## - `signum`: Signal number integer.
+## - `udata`: Caller tag echoed back on events. Defaults to `0`.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function UvPoller.watch_signal(self: UvPoller, signum, udata = 0) -> int
     return poller_watch_signal(self, signum, udata)
 end
 
-pub function UvPoller.unwatch_signal(self: UvPoller, signum)
+## Deregisters a signal watcher from this poller.
+##
+## ### Parameters
+## - `self`: The target `UvPoller` instance.
+## - `signum`: Signal number integer.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function UvPoller.unwatch_signal(self: UvPoller, signum) -> int
     return poller_unwatch_signal(self, signum)
 end
 
-pub function UvPoller.count(self: UvPoller)
+## Returns the total active sockets monitored by this poller.
+##
+## ### Parameters
+## - `self`: The target `UvPoller` instance.
+##
+## ### Returns
+## Monitored descriptor count (`0` when closed).
+pub function UvPoller.count(self: UvPoller) -> int
     return poller_count(self)
 end
 
-pub function UvPoller.close(self: UvPoller)
+## Closes this poller and frees native OS resources.
+##
+## ### Parameters
+## - `self`: The target `UvPoller` instance.
+##
+## ### Returns
+## `1` on close, `0` when already closed.
+pub function UvPoller.close(self: UvPoller) -> int
     return poller_close(self)
 end
 
@@ -166,7 +313,13 @@ end
 # Windows IOCP / Universal Async Completion Queue
 # ═══════════════════════════════════════════════════════════════
 
-# Creates a new async I/O completion queue
+## Creates a new async I/O completion queue.
+##
+## ### Parameters
+## - `max_threads`: Worker thread hint (`0` selects a default). Defaults to `0`.
+##
+## ### Returns
+## The new `UvIocp` instance (null when native creation fails).
 pub function iocp_new(max_threads = 0)
     if max_threads is null or max_threads < 0
         max_threads = 0
@@ -183,8 +336,16 @@ pub function iocp_new(max_threads = 0)
     }
 end
 
-# Associates a socket or file handle with the completion queue
-pub function iocp_associate(iocp, socket_handle, completion_key = 0)
+## Associates a socket or file handle with the completion queue.
+##
+## ### Parameters
+## - `iocp`: Target `UvIocp` instance.
+## - `socket_handle`: Socket or file handle integer.
+## - `completion_key`: Key echoed back on completion. Defaults to `0`.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function iocp_associate(iocp, socket_handle, completion_key = 0) -> int
     if iocp is null or iocp.closed == 1 or socket_handle is null or socket_handle <= 0
         return -1
     end
@@ -194,8 +355,17 @@ pub function iocp_associate(iocp, socket_handle, completion_key = 0)
     return alya_uv_iocp_associate(iocp.handle, socket_handle, completion_key)
 end
 
-# Posts an asynchronous completion packet directly into the queue
-pub function iocp_post(iocp, bytes_transferred, completion_key = 0, udata = 0)
+## Posts an asynchronous completion packet directly into the queue.
+##
+## ### Parameters
+## - `iocp`: Target `UvIocp` instance.
+## - `bytes_transferred`: Byte count reported with the packet.
+## - `completion_key`: Key echoed back on completion. Defaults to `0`.
+## - `udata`: Caller tag echoed back on completion. Defaults to `0`.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function iocp_post(iocp, bytes_transferred, completion_key = 0, udata = 0) -> int
     if iocp is null or iocp.closed == 1
         return -1
     end
@@ -211,8 +381,15 @@ pub function iocp_post(iocp, bytes_transferred, completion_key = 0, udata = 0)
     return alya_uv_iocp_post(iocp.handle, bytes_transferred, completion_key, udata)
 end
 
-# Waits for a queued completion event up to timeout_ms
-pub function iocp_wait(iocp, timeout_ms = 100)
+## Waits for a queued completion event up to a timeout.
+##
+## ### Parameters
+## - `iocp`: Target `UvIocp` instance.
+## - `timeout_ms`: Wait ceiling in milliseconds. Defaults to `100`.
+##
+## ### Returns
+## Single-element `UvEventNotification` array (empty on timeout).
+pub function iocp_wait(iocp, timeout_ms = 100) -> array
     if iocp is null or iocp.closed == 1
         return []
     end
@@ -226,11 +403,17 @@ pub function iocp_wait(iocp, timeout_ms = 100)
     let key = alya_uv_event_fd(iocp.events_buffer, 0)
     let flags = alya_uv_event_flags(iocp.events_buffer, 0)
     let udata = alya_uv_event_udata(iocp.events_buffer, 0)
-    return [UvEventNotification(0, key, flags, udata)]
+    return [UvEventNotification { kind: 0, fd: key, events: flags, udata: udata }]
 end
 
-# Closes the completion queue and frees resources
-pub function iocp_close(iocp)
+## Closes the completion queue and frees resources (idempotent).
+##
+## ### Parameters
+## - `iocp`: Target `UvIocp` instance.
+##
+## ### Returns
+## `1` on close, `0` when already closed.
+pub function iocp_close(iocp) -> int
     if iocp is null or iocp.closed == 1
         return 0
     end
@@ -246,20 +429,56 @@ pub function iocp_close(iocp)
     return 1
 end
 
-# --- Struct Methods on UvIocp ---
+# ───────────────────────────────────────────────────────────────
+# Struct Methods on UvIocp
+# ───────────────────────────────────────────────────────────────
 
-pub function UvIocp.associate(self, socket_handle, completion_key = 0)
+## Associates a socket or file handle with this queue.
+##
+## ### Parameters
+## - `self`: The target `UvIocp` instance.
+## - `socket_handle`: Socket or file handle integer.
+## - `completion_key`: Key echoed back on completion. Defaults to `0`.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function UvIocp.associate(self, socket_handle, completion_key = 0) -> int
     return iocp_associate(self, socket_handle, completion_key)
 end
 
-pub function UvIocp.post(self, bytes_transferred, completion_key = 0, udata = 0)
+## Posts an asynchronous completion packet into this queue.
+##
+## ### Parameters
+## - `self`: The target `UvIocp` instance.
+## - `bytes_transferred`: Byte count reported with the packet.
+## - `completion_key`: Key echoed back on completion. Defaults to `0`.
+## - `udata`: Caller tag echoed back on completion. Defaults to `0`.
+##
+## ### Returns
+## Native result code (`0` on success, `-1` on invalid input).
+pub function UvIocp.post(self, bytes_transferred, completion_key = 0, udata = 0) -> int
     return iocp_post(self, bytes_transferred, completion_key, udata)
 end
 
-pub function UvIocp.wait(self, timeout_ms = 100)
+## Waits for a queued completion event up to a timeout.
+##
+## ### Parameters
+## - `self`: The target `UvIocp` instance.
+## - `timeout_ms`: Wait ceiling in milliseconds. Defaults to `100`.
+##
+## ### Returns
+## Single-element `UvEventNotification` array (empty on timeout).
+pub function UvIocp.wait(self, timeout_ms = 100) -> array
     return iocp_wait(self, timeout_ms)
 end
 
-pub function UvIocp.close(self)
+## Closes this completion queue and frees resources.
+##
+## ### Parameters
+## - `self`: The target `UvIocp` instance.
+##
+## ### Returns
+## `1` on close, `0` when already closed.
+pub function UvIocp.close(self) -> int
     return iocp_close(self)
 end

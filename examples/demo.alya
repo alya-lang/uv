@@ -1,4 +1,6 @@
-# demo.alya - Interactive showcase of uv kernel multiplexer
+## Demo of the uv kernel multiplexer
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+
 import "std/net"
 import "../src/lib.alya" as uv
 
@@ -6,14 +8,16 @@ function main()
     say "=================================================="
     say "   Alya uv Kernel I/O Multiplexer Showcase"
     say "=================================================="
-    say "Detected OS Kernel Backend: " + uv::backend_name()
+    let backend = uv::backend_name()
+    say "Detected OS Kernel Backend: {backend}"
     say ""
 
     # 1. Poller Initialization
     say "--- 1. Initializing UvPoller Handle ---"
     let p = uv::poller(32, 32)
     say "✓ Poller created with capacity 32"
-    say "• Initial monitored sockets: " + str(p.count())
+    let initial_count = p.count()
+    say "• Initial monitored sockets: {initial_count}"
     say ""
 
     # 2. Server Setup & Poller Registration
@@ -22,21 +26,23 @@ function main()
     let srv = tcp_listen(port, 5)
     tcp_set_nonblocking(srv, 1)
     p.add(srv, uv::UvEvent.Readable, 1001)
-    say "✓ Server listening on 127.0.0.1:" + str(port) + " (fd=" + str(srv) + ")"
+    say "✓ Server listening on 127.0.0.1:{port} (fd={srv})"
     say "✓ Registered listener with poller (udata=1001, events=READABLE)"
-    say "• Monitored sockets count: " + str(p.count())
+    let reg_count = p.count()
+    say "• Monitored sockets count: {reg_count}"
     say ""
 
     # 3. Client Connection & Event Detection
     say "--- 3. Client Connection & Readiness Demultiplexing ---"
     let client = tcp_connect("127.0.0.1", port)
-    say "✓ Client connected from 127.0.0.1 (fd=" + str(client) + ")"
+    say "✓ Client connected from 127.0.0.1 (fd={client})"
 
     let evs = p.wait(50)
-    say "✓ Poller wait detected " + str(len(evs)) + " ready event(s):"
+    let ev_count = len(evs)
+    say "✓ Poller wait detected {ev_count} ready event(s):"
     for ev in evs
         let ev_str = uv::uv_event_name(ev.events)
-        say "  • Event on fd=" + str(ev.fd) + " | Type: " + ev_str + " | udata=" + str(ev.udata)
+        say "  • Event on fd={ev.fd} | Type: {ev_str} | udata={ev.udata}"
     end
     say ""
 
@@ -45,7 +51,7 @@ function main()
     let accepted = tcp_accept(srv)
     tcp_set_nonblocking(accepted, 1)
     p.add(accepted, uv::UvEvent.Readable, 2002)
-    say "✓ Accepted client connection (fd=" + str(accepted) + ", udata=2002)"
+    say "✓ Accepted client connection (fd={accepted}, udata=2002)"
 
     tcp_send(client, "HELLO_KERNEL_MULTIPLEXER\n")
     say "✓ Sent 25-byte payload from client"
@@ -54,11 +60,11 @@ function main()
     say "✓ Poller detected incoming data:"
     for ev in data_evs
         let ev_str = uv::uv_event_name(ev.events)
-        say "  • Event on fd=" + str(ev.fd) + " | Type: " + ev_str + " | udata=" + str(ev.udata)
+        say "  • Event on fd={ev.fd} | Type: {ev_str} | udata={ev.udata}"
     end
 
     let msg = tcp_recv(accepted, 1024)
-    say "✓ Server received payload: " + msg
+    say "✓ Server received payload: {msg}"
 
     # 5. Modifying and Removing Sockets
     say "--- 5. Dynamic Event Modification & Deregistration ---"
@@ -67,11 +73,13 @@ function main()
 
     p.remove(accepted)
     say "✓ Removed accepted socket from poller"
-    say "• Monitored sockets count: " + str(p.count())
+    let after_one = p.count()
+    say "• Monitored sockets count: {after_one}"
 
     p.remove(srv)
     say "✓ Removed server listener from poller"
-    say "• Monitored sockets count: " + str(p.count())
+    let after_all = p.count()
+    say "• Monitored sockets count: {after_all}"
     say ""
 
     # 6. Cleanup

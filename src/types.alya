@@ -1,7 +1,11 @@
-# Data structures and enums for uv kernel multiplexer
-# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+## # uv/types
+##
+## Data structures and enums for the uv kernel multiplexer.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
 
-# Public enumeration for multiplexed socket I/O events
+## Public enumeration for multiplexed socket I/O events.
+##
+## Bitmask values combine into readiness event sets.
 pub enum UvEvent
     Readable = 1,
     Writable = 2,
@@ -11,31 +15,59 @@ pub enum UvEvent
     Completed = 32
 end
 
-# Event record triggered by the kernel poller
+## Event record triggered by the kernel poller.
+##
+## ### Fields
+## - `kind`: Event source kind (`0` for poller and completion events).
+## - `fd`: File descriptor or completion key.
+## - `events`: `UvEvent` bitmask of triggered conditions.
+## - `udata`: Caller-supplied opaque tag.
 pub struct UvEventNotification
-    kind,
-    fd,
-    events,
-    udata
+    kind: int,
+    fd: int,
+    events: int,
+    udata: int
 end
 
-# Poller struct wrapping native kernel multiplexer state
+## Poller struct wrapping native kernel multiplexer state.
+##
+## ### Fields
+## - `handle`: Native poller pointer (null once closed).
+## - `events_buffer`: Native event batch buffer (null once closed).
+## - `buffer_capacity`: Maximum events per wait batch.
+## - `closed`: `1` once closed, `0` while active.
 pub struct UvPoller
     handle,
     events_buffer,
-    buffer_capacity,
-    closed
+    buffer_capacity: int,
+    closed: int
 end
 
-# Completion queue struct wrapping native Windows IOCP or async completion queue
+## Completion queue struct wrapping native Windows IOCP or async queue.
+##
+## ### Fields
+## - `handle`: Native queue pointer (null once closed).
+## - `events_buffer`: Native event batch buffer (null once closed).
+## - `closed`: `1` once closed, `0` while active.
 pub struct UvIocp
     handle,
     events_buffer,
-    closed
+    closed: int
 end
 
-# Human-readable event description formatter
-pub function uv_event_name(events)
+## Formats a human-readable event description (`READABLE|WRITABLE`).
+##
+## ### Parameters
+## - `events`: `UvEvent` bitmask integer.
+##
+## ### Returns
+## Pipe-joined flag names, or `"NONE"` when no flag is set.
+##
+## ### Examples
+## ```alya
+## say uv_event_name(3) # "READABLE|WRITABLE"
+## ```
+pub function uv_event_name(events: int) -> string
     let parts = []
     if (events & UvEvent.Readable) != 0
         push(parts, "READABLE")

@@ -1,21 +1,49 @@
-# uv - High-Performance OS Kernel I/O Multiplexing Engine
-# Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+## # uv
+##
+## High-performance OS kernel I/O multiplexing engine.
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang).
+##
+## Wraps `WSAPoll`/`epoll`/`kqueue` readiness polling plus a Windows IOCP
+## style async completion queue behind poller factories.
 
 import "./types.alya"
 import "./ffi.alya"
 import "./core/poller.alya"
 
-# Convenience factory for UvPoller
+## Convenience factory creating an initialized `UvPoller`.
+##
+## ### Parameters
+## - `initial_capacity`: Pre-sized descriptor slots. Defaults to `64`.
+## - `max_events_batch`: Maximum events per wait batch. Defaults to `64`.
+##
+## ### Returns
+## The new `UvPoller` instance (null when native creation fails).
+##
+## ### Examples
+## ```alya
+## let p = poller(32, 32)
+## ```
 pub function poller(initial_capacity = 64, max_events_batch = 64)
     return poller_new(initial_capacity, max_events_batch)
 end
 
-# Returns the active OS kernel multiplexer name ("WSAPoll", "epoll", "kqueue", "poll")
-pub function backend_name()
+## Returns the active OS kernel multiplexer name.
+##
+## One of `"WSAPoll"`, `"epoll"`, `"kqueue"`, or `"poll"`.
+##
+## ### Returns
+## The backend name string.
+pub function backend_name() -> string
     return alya_uv_backend_name()
 end
 
-# Convenience factory for UvIocp (Windows IOCP / Async Completion Queue)
+## Convenience factory creating an async completion queue.
+##
+## ### Parameters
+## - `max_threads`: Worker thread hint (`0` selects a default). Defaults to `0`.
+##
+## ### Returns
+## The new `UvIocp` instance (null when native creation fails).
 pub function iocp(max_threads = 0)
     return iocp_new(max_threads)
 end

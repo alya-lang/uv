@@ -1,4 +1,6 @@
-# Benchmark suite for uv kernel multiplexer
+## Benchmark suite for the uv package
+## Part of the Alya Language package ecosystem (https://github.com/alya-lang)
+
 import "std/bench"
 import "std/net"
 import "../src/lib.alya" as uv
