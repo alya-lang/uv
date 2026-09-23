@@ -6,7 +6,6 @@
 ## Wraps `WSAPoll`/`epoll`/`kqueue` readiness polling plus a Windows IOCP
 ## style async completion queue behind poller factories.
 
-import "./types.alya"
 import "./ffi.alya"
 import "./core/poller.alya"
 
