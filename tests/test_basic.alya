@@ -93,7 +93,14 @@ function main()
     let unsig_res = p_sig.unwatch_signal(2)
     runner_assert_eq(r, unsig_res, 0, "signal watch deregistered")
     p_sig.close()
+    @cfg(feature = "iocp")
+    check_iocp(r)
 
+    runner_summary(r)
+end
+
+@cfg(feature = "iocp")
+function check_iocp(r)
     # 7. Async Completion Queue (Windows IOCP / Universal Queue)
     let queue = uv::iocp(2)
     runner_assert(r, queue is not null, "iocp queue created")
@@ -110,8 +117,5 @@ function main()
 
     let q_close = queue.close()
     runner_assert_eq(r, q_close, 1, "iocp closed successfully")
-
-    runner_summary(r)
 end
-
 main()

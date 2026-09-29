@@ -12,6 +12,10 @@ keywords = ["alya", "alya-lang", "package", "uv", "epoll", "iocp", "wsapoll", "k
 
 [dependencies]
 
+[features]
+default = ["iocp"]
+iocp = []
+
 [build]
 links = "uv"
 c-sources = ["c/alya_uv.c"]

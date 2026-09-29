@@ -38,11 +38,14 @@ end
 
 ## Convenience factory creating an async completion queue.
 ##
+## Requires the `iocp` feature (default-on).
+##
 ## ### Parameters
 ## - `max_threads`: Worker thread hint (`0` selects a default). Defaults to `0`.
 ##
 ## ### Returns
 ## The new `UvIocp` instance (null when native creation fails).
+@cfg(feature = "iocp")
 pub function iocp(max_threads = 0)
     return iocp_new(max_threads)
 end

@@ -320,6 +320,7 @@ end
 ##
 ## ### Returns
 ## The new `UvIocp` instance (null when native creation fails).
+@cfg(feature = "iocp")
 pub function iocp_new(max_threads = 0)
     if max_threads is null or max_threads < 0
         max_threads = 0
@@ -345,6 +346,7 @@ end
 ##
 ## ### Returns
 ## Native result code (`0` on success, `-1` on invalid input).
+@cfg(feature = "iocp")
 pub function iocp_associate(iocp, socket_handle, completion_key = 0) -> int
     if iocp is null or iocp.closed == 1 or socket_handle is null or socket_handle <= 0
         return -1
@@ -365,6 +367,7 @@ end
 ##
 ## ### Returns
 ## Native result code (`0` on success, `-1` on invalid input).
+@cfg(feature = "iocp")
 pub function iocp_post(iocp, bytes_transferred, completion_key = 0, udata = 0) -> int
     if iocp is null or iocp.closed == 1
         return -1
@@ -389,6 +392,7 @@ end
 ##
 ## ### Returns
 ## Single-element `UvEventNotification` array (empty on timeout).
+@cfg(feature = "iocp")
 pub function iocp_wait(iocp, timeout_ms = 100) -> array
     if iocp is null or iocp.closed == 1
         return []
@@ -413,6 +417,7 @@ end
 ##
 ## ### Returns
 ## `1` on close, `0` when already closed.
+@cfg(feature = "iocp")
 pub function iocp_close(iocp) -> int
     if iocp is null or iocp.closed == 1
         return 0
@@ -442,6 +447,7 @@ end
 ##
 ## ### Returns
 ## Native result code (`0` on success, `-1` on invalid input).
+@cfg(feature = "iocp")
 pub function UvIocp.associate(self, socket_handle, completion_key = 0) -> int
     return iocp_associate(self, socket_handle, completion_key)
 end
@@ -456,6 +462,7 @@ end
 ##
 ## ### Returns
 ## Native result code (`0` on success, `-1` on invalid input).
+@cfg(feature = "iocp")
 pub function UvIocp.post(self, bytes_transferred, completion_key = 0, udata = 0) -> int
     return iocp_post(self, bytes_transferred, completion_key, udata)
 end
@@ -468,6 +475,7 @@ end
 ##
 ## ### Returns
 ## Single-element `UvEventNotification` array (empty on timeout).
+@cfg(feature = "iocp")
 pub function UvIocp.wait(self, timeout_ms = 100) -> array
     return iocp_wait(self, timeout_ms)
 end
@@ -479,6 +487,7 @@ end
 ##
 ## ### Returns
 ## `1` on close, `0` when already closed.
+@cfg(feature = "iocp")
 pub function UvIocp.close(self) -> int
     return iocp_close(self)
 end

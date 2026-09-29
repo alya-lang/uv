@@ -61,6 +61,22 @@ alya add uv --git https://github.com/alya-lang/uv --branch main
 alya install
 ```
 
+### Package Features
+
+| Feature | Default | Description |
+|:---|:---:|:---|
+| `iocp` | ✅ | Async completion queue (`iocp()`, `UvIocp`). Without it only readiness polling (`poller()`) remains. |
+
+```bash
+# Full build (default)
+alya install
+alya test
+
+# Slim build (polling only)
+alya install --no-default-features
+alya test --no-default-features
+```
+
 ---
 
 ## 🚀 Quick Start
