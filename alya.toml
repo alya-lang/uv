@@ -1,6 +1,6 @@
 [package]
 name = "uv"
-version = "0.1.0"
+version = "0.2.0"
 alya-version = "0.0.19"
 entry = "src/lib.alya"
 description = "High-performance OS kernel I/O multiplexing (epoll, WSAPoll, kqueue) and asynchronous event engine for Alya"
