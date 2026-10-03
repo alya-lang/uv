@@ -84,7 +84,7 @@ function main()
 
     # 5. Poller Close and Resource Cleanup
     let close_res = p.close()
-    runner_assert_eq(r, close_res, 1, "poller closed successfully")
+    runner_assert_eq(r, close_res, true, "poller closed successfully")
 
     # 6. Signal Monitoring API Verification
     let p_sig = uv::poller(16, 16)
@@ -116,6 +116,6 @@ function check_iocp(r)
     runner_assert(r, (q_ev.events & uv::UvEvent.Completed) != 0, "event has Completed flag")
 
     let q_close = queue.close()
-    runner_assert_eq(r, q_close, 1, "iocp closed successfully")
+    runner_assert_eq(r, q_close, true, "iocp closed successfully")
 end
 main()

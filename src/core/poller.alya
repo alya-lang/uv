@@ -41,7 +41,7 @@ pub function poller_new(initial_capacity = 64, max_events_batch = 64)
         handle: handle,
         events_buffer: ev_buf,
         buffer_capacity: max_events_batch,
-        closed: 0
+        closed: false
     }
 end
 
@@ -56,7 +56,7 @@ end
 ## ### Returns
 ## Native result code (`0` on success, `-1` on invalid input).
 pub function poller_add(p: UvPoller, fd, events = 1, udata = 0) -> int
-    if p is null or p.closed == 1 or fd is null or fd < 0
+    if p is null or p.closed == true or fd is null or fd < 0
         return -1
     end
     if events is null
@@ -79,7 +79,7 @@ end
 ## ### Returns
 ## Native result code (`0` on success, `-1` on invalid input).
 pub function poller_modify(p: UvPoller, fd, events: int, udata = 0) -> int
-    if p is null or p.closed == 1 or fd is null or fd < 0
+    if p is null or p.closed == true or fd is null or fd < 0
         return -1
     end
     if udata is null
@@ -97,7 +97,7 @@ end
 ## ### Returns
 ## Native result code (`0` on success, `-1` on invalid input).
 pub function poller_remove(p: UvPoller, fd) -> int
-    if p is null or p.closed == 1 or fd is null or fd < 0
+    if p is null or p.closed == true or fd is null or fd < 0
         return -1
     end
     return alya_uv_poller_remove(p.handle, fd)
@@ -112,7 +112,7 @@ end
 ## ### Returns
 ## Array of `UvEventNotification` records (possibly empty).
 pub function poller_wait(p: UvPoller, timeout_ms = 100) -> array
-    if p is null or p.closed == 1
+    if p is null or p.closed == true
         return []
     end
     if timeout_ms is null or timeout_ms < 0
@@ -143,7 +143,7 @@ end
 ## ### Returns
 ## Monitored descriptor count (`0` when closed).
 pub function poller_count(p: UvPoller) -> int
-    if p is null or p.closed == 1
+    if p is null or p.closed == true
         return 0
     end
     return alya_uv_poller_count(p.handle)
@@ -157,10 +157,10 @@ end
 ## ### Returns
 ## `1` on close, `0` when already closed.
 pub function poller_close(p: UvPoller) -> int
-    if p is null or p.closed == 1
-        return 0
+    if p is null or p.closed == true
+        return false
     end
-    p.closed = 1
+    p.closed = true
     if p.events_buffer is not null
         alya_uv_events_free(p.events_buffer)
         p.events_buffer = null
@@ -169,7 +169,7 @@ pub function poller_close(p: UvPoller) -> int
         alya_uv_poller_close(p.handle)
         p.handle = null
     end
-    return 1
+    return true
 end
 
 ## Watches an OS process signal (`SIGINT=2`, `SIGTERM=15`) via the poller.
@@ -182,7 +182,7 @@ end
 ## ### Returns
 ## Native result code (`0` on success, `-1` on invalid input).
 pub function poller_watch_signal(p: UvPoller, signum, udata = 0) -> int
-    if p is null or p.closed == 1 or signum is null or signum <= 0
+    if p is null or p.closed == true or signum is null or signum <= 0
         return -1
     end
     if udata is null
@@ -200,7 +200,7 @@ end
 ## ### Returns
 ## Native result code (`0` on success, `-1` on invalid input).
 pub function poller_unwatch_signal(p: UvPoller, signum) -> int
-    if p is null or p.closed == 1 or signum is null or signum <= 0
+    if p is null or p.closed == true or signum is null or signum <= 0
         return -1
     end
     return alya_uv_poller_unwatch_signal(p.handle, signum)
@@ -333,7 +333,7 @@ pub function iocp_new(max_threads = 0)
     return UvIocp {
         handle: handle,
         events_buffer: ev_buf,
-        closed: 0
+        closed: false
     }
 end
 
@@ -348,7 +348,7 @@ end
 ## Native result code (`0` on success, `-1` on invalid input).
 @cfg(feature = "iocp")
 pub function iocp_associate(iocp, socket_handle, completion_key = 0) -> int
-    if iocp is null or iocp.closed == 1 or socket_handle is null or socket_handle <= 0
+    if iocp is null or iocp.closed == true or socket_handle is null or socket_handle <= 0
         return -1
     end
     if completion_key is null
@@ -369,7 +369,7 @@ end
 ## Native result code (`0` on success, `-1` on invalid input).
 @cfg(feature = "iocp")
 pub function iocp_post(iocp, bytes_transferred, completion_key = 0, udata = 0) -> int
-    if iocp is null or iocp.closed == 1
+    if iocp is null or iocp.closed == true
         return -1
     end
     if bytes_transferred is null
@@ -394,7 +394,7 @@ end
 ## Single-element `UvEventNotification` array (empty on timeout).
 @cfg(feature = "iocp")
 pub function iocp_wait(iocp, timeout_ms = 100) -> array
-    if iocp is null or iocp.closed == 1
+    if iocp is null or iocp.closed == true
         return []
     end
     if timeout_ms is null or timeout_ms < 0
@@ -419,10 +419,10 @@ end
 ## `1` on close, `0` when already closed.
 @cfg(feature = "iocp")
 pub function iocp_close(iocp) -> int
-    if iocp is null or iocp.closed == 1
-        return 0
+    if iocp is null or iocp.closed == true
+        return false
     end
-    iocp.closed = 1
+    iocp.closed = true
     if iocp.events_buffer is not null
         alya_uv_events_free(iocp.events_buffer)
         iocp.events_buffer = null
@@ -431,7 +431,7 @@ pub function iocp_close(iocp) -> int
         alya_uv_iocp_close(iocp.handle)
         iocp.handle = null
     end
-    return 1
+    return true
 end
 
 # ───────────────────────────────────────────────────────────────
