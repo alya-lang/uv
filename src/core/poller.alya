@@ -156,7 +156,7 @@ end
 ##
 ## ### Returns
 ## `1` on close, `0` when already closed.
-pub function poller_close(p: UvPoller) -> int
+pub function poller_close(p: UvPoller) -> bool
     if p is null or p.closed == true
         return false
     end
@@ -418,7 +418,7 @@ end
 ## ### Returns
 ## `1` on close, `0` when already closed.
 @cfg(feature = "iocp")
-pub function iocp_close(iocp) -> int
+pub function iocp_close(iocp) -> bool
     if iocp is null or iocp.closed == true
         return false
     end
