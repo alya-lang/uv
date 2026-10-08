@@ -63,6 +63,10 @@ jobs:
           alya install
 
       - name: Run package test suite
+        env:
+          # Inner `alya test` suites default to a 60s per-binary timeout;
+          # heavy suites exceed it on slow runners (mirrors alya-lang/test).
+          ALYA_TEST_TIMEOUT_SECS: '600'
         run: |
           alya test
 
