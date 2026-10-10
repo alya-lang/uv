@@ -15,7 +15,7 @@ function main()
     # 1. Native Backend Info
     let backend = uv::backend_name()
     runner_assert(r, len(backend) > 0, "backend name should not be empty")
-    say "Detected OS Kernel Multiplexer Backend: {backend}"
+    say f"Detected OS Kernel Multiplexer Backend: {backend}"
 
     # 2. Poller Initialization and Empty Wait
     let p = uv::poller(32, 32)
